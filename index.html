@@ -1,0 +1,2175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Plantão da Dor — Simulador Clínico Veterinário </title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --primary-light: #ccfbf1;
+      --accent: #0284c7;
+      --accent-light: #e0f2fe;
+      --purple: #6b21a8;
+      --purple-light: #f3e8ff;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+      --success-bg: #dcfce7;
+      --success-border: #16a34a;
+      --success-text: #14532d;
+      --warn-bg: #fef9c3;
+      --warn-border: #ca8a04;
+      --warn-text: #713f12;
+      --danger-bg: #fee2e2;
+      --danger-border: #dc2626;
+      --danger-text: #7f1d1d;
+      --shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ==================== OVERLAY DE TERMO DE USO DIDÁTICO ==================== */
+    #disclaimer-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      padding: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .disclaimer-card {
+      background: #ffffff;
+      max-width: 480px;
+      width: 100%;
+      padding: 24px;
+      border-radius: 22px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+      text-align: left;
+      max-height: 92vh;
+      overflow-y: auto;
+    }
+
+    .disclaimer-card h2 {
+      color: var(--primary-dark);
+      font-size: 1.15rem;
+      margin-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .disclaimer-card p {
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .disclaimer-card ul {
+      margin: 8px 0 16px 18px;
+      font-size: 0.83rem;
+      color: #334155;
+    }
+
+    .disclaimer-card li {
+      margin-bottom: 6px;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 16px 0;
+      padding: 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 0.83rem;
+      color: var(--text);
+      user-select: none;
+    }
+
+    .checkbox-container input {
+      margin-top: 2px;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .btn-consent {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      border: none;
+      padding: 13px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(15, 118, 110, 0.28);
+    }
+
+    .btn-consent:disabled {
+      background: #cbd5e1;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .btn-consent:not(:disabled):hover {
+      transform: translateY(-1px);
+      opacity: 0.96;
+    }
+
+    /* ==================== ESTRUTURA MOBILE APP (.app-shell) ==================== */
+    .app-shell {
+      width: 100%;
+      max-width: 500px;
+      background: var(--bg);
+      border-radius: 30px;
+      box-shadow: 0 25px 55px -12px rgba(0, 0, 0, 0.35);
+      border: 6px solid #0f172a;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 86vh;
+      max-height: 94vh;
+    }
+
+    /* Top Bar */
+    .app-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: #ffffff;
+      padding: 14px 18px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+      z-index: 10;
+    }
+
+    .app-title-group h1 {
+      font-size: 1.08rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge-vetsim {
+      font-size: 0.65rem;
+      background: rgba(255, 255, 255, 0.22);
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    .app-title-group p {
+      font-size: 0.7rem;
+      opacity: 0.92;
+      margin-top: 2px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.18);
+      border: none;
+      color: white;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    .btn-icon:hover {
+      background: rgba(255, 255, 255, 0.32);
+    }
+
+    /* HUD Bar */
+    .hud-bar {
+      background: var(--surface);
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 0.75fr;
+      gap: 8px;
+    }
+
+    .hud-item {
+      background: #f8fafc;
+      padding: 6px 9px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+    }
+
+    .hud-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .hud-value {
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill-green {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #059669);
+      transition: width 0.4s ease;
+    }
+
+    .progress-fill-red {
+      height: 100%;
+      background: linear-gradient(90deg, #f59e0b, #dc2626);
+      transition: width 0.4s ease;
+    }
+
+    .timer-display {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+      text-align: center;
+      margin-top: 1px;
+    }
+
+    /* Main Scrollable Body */
+    .app-body {
+      padding: 15px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--surface);
+      border-radius: 18px;
+      padding: 15px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      animation: fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .badge-species {
+      background: var(--accent-light);
+      color: #0369a1;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .badge-step {
+      background: var(--purple-light);
+      color: var(--purple);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    /* Banner de Fase */
+    .phase-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .phase-banner-title {
+      font-size: 0.86rem;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+    }
+
+    .phase-banner-sub {
+      font-size: 0.72rem;
+      color: #cbd5e1;
+    }
+
+    .phase-pills {
+      display: flex;
+      gap: 5px;
+    }
+
+    .phase-dot {
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.12);
+      color: #94a3b8;
+    }
+
+    .phase-dot.active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .phase-dot.done {
+      background: #16a34a;
+      color: #ffffff;
+    }
+
+    /* Prontuário Médico */
+    .patient-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .patient-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+
+    .patient-name {
+      font-size: 1.02rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .patient-meta {
+      font-size: 0.76rem;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .vitals-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .vital-chip {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 5px 7px;
+      text-align: center;
+    }
+
+    .vital-chip span {
+      display: block;
+      font-size: 0.62rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .vital-chip strong {
+      font-size: 0.76rem;
+      color: var(--text);
+    }
+
+    .clinical-box {
+      background: #f8fafc;
+      border-left: 4px solid var(--accent);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #334155;
+    }
+
+    .question-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    /* Options */
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .option-btn {
+      width: 100%;
+      text-align: left;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 13px;
+      padding: 11px 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      transition: all 0.16s ease;
+      font-size: 0.83rem;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .option-btn:hover:not(:disabled) {
+      border-color: var(--primary);
+      background: #f0fdfa;
+      transform: translateY(-1px);
+    }
+
+    .option-btn:disabled {
+      cursor: default;
+      opacity: 0.78;
+    }
+
+    .option-letter {
+      background: #e2e8f0;
+      color: #1e293b;
+      font-weight: 800;
+      font-size: 0.76rem;
+      min-width: 25px;
+      height: 25px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .option-btn.selected-ideal {
+      border-color: var(--success-border);
+      background: var(--success-bg);
+      opacity: 1;
+    }
+    .option-btn.selected-ideal .option-letter { background: var(--success-border); color: white; }
+
+    .option-btn.selected-subotima {
+      border-color: var(--warn-border);
+      background: var(--warn-bg);
+      opacity: 1;
+    }
+    .option-btn.selected-subotima .option-letter { background: var(--warn-border); color: white; }
+
+    .option-btn.selected-erro {
+      border-color: var(--danger-border);
+      background: var(--danger-bg);
+      opacity: 1;
+    }
+    .option-btn.selected-erro .option-letter { background: var(--danger-border); color: white; }
+
+    /* Calculadora Posológica Guiada (Etapa B) */
+    .calc-challenge-box {
+      background: #f0f9ff;
+      border: 1.5px solid #bae6fd;
+      border-radius: 14px;
+      padding: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .calc-formula-hint {
+      font-size: 0.79rem;
+      color: #0369a1;
+      background: #e0f2fe;
+      padding: 8px 10px;
+      border-radius: 9px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .quick-pills-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+    }
+
+    .quick-pill-btn {
+      background: #ffffff;
+      border: 1.5px solid #7dd3fc;
+      color: #0369a1;
+      font-weight: 800;
+      font-size: 0.82rem;
+      padding: 8px 6px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .quick-pill-btn:hover:not(:disabled) {
+      background: #0284c7;
+      color: #ffffff;
+      border-color: #0284c7;
+    }
+
+    .quick-pill-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    .calc-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .calc-input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 11px;
+      border: 2px solid #94a3b8;
+      font-size: 0.98rem;
+      font-weight: 700;
+      outline: none;
+      background: #ffffff;
+    }
+
+    .calc-input:focus {
+      border-color: var(--primary);
+    }
+
+    .calc-unit {
+      font-weight: 800;
+      color: var(--text);
+      font-size: 0.88rem;
+    }
+
+    /* Feedback Box */
+    .feedback-box {
+      border-radius: 13px;
+      padding: 12px 13px;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      margin-top: 11px;
+      border-left: 5px solid;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .feedback-ideal { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
+    .feedback-subotima { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
+    .feedback-erro { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      color: white;
+      border: none;
+      border-radius: 13px;
+      padding: 13px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(15, 118, 110, 0.28);
+      transition: transform 0.15s, opacity 0.15s;
+    }
+
+    .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); }
+
+    .btn-secondary {
+      width: 100%;
+      background: #f1f5f9;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .btn-danger-outline {
+      background: #fff1f2;
+      color: #be123c;
+      border: 1px solid #fecdd3;
+      border-radius: 9px;
+      padding: 5px 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Input Nome Jogador */
+    .name-input {
+      width: 100%;
+      padding: 11px 13px;
+      border-radius: 12px;
+      border: 1.5px solid #cbd5e1;
+      font-size: 0.88rem;
+      margin-top: 10px;
+      outline: none;
+    }
+    .name-input:focus { border-color: var(--primary); }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 7px 4px;
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 0.67rem;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 5px 2px;
+      border-radius: 10px;
+      transition: all 0.15s;
+    }
+
+    .nav-btn.active {
+      color: var(--primary);
+      background: #f0fdfa;
+    }
+
+    .nav-btn span.icon { font-size: 1.12rem; }
+
+    /* Tables & Lists */
+    .ref-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.74rem;
+      margin-top: 8px;
+    }
+    .ref-table th, .ref-table td {
+      border: 1px solid var(--border);
+      padding: 6px 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .ref-table th { background: #f1f5f9; font-weight: 700; }
+
+    .screen { display: none; }
+    .screen.active { display: flex; flex-direction: column; gap: 12px; }
+
+    .hero-center { text-align: center; padding: 8px 4px; }
+    .hero-emoji { font-size: 2.8rem; margin-bottom: 6px; }
+
+    .rule-pill {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      background: #f8fafc;
+      padding: 9px 11px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      font-size: 0.79rem;
+      text-align: left;
+      margin-top: 7px;
+    }
+
+    .rank-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 11px;
+      border-radius: 11px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      font-size: 0.81rem;
+      margin-top: 6px;
+    }
+
+    /* Certificado Visual */
+    .cert-box {
+      border: 2px dashed var(--primary);
+      background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
+      border-radius: 16px;
+      padding: 14px;
+      margin: 10px 0;
+      text-align: center;
+    }
+
+    /* ==================== MODAL DE REAÇÃO (IMAGEM ACERTO / ERRO) ==================== */
+    #reaction-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(4px);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9500;
+      padding: 16px;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .reaction-card {
+      background: #ffffff;
+      max-width: 380px;
+      width: 100%;
+      padding: 20px;
+      border-radius: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+      text-align: center;
+      border-top: 6px solid var(--primary);
+      animation: popIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .reaction-card.ideal { border-top-color: var(--success-border); }
+    .reaction-card.parcial { border-top-color: var(--warn-border); }
+    .reaction-card.erro { border-top-color: var(--danger-border); }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.85); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .reaction-img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: 16px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .reaction-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .reaction-card.ideal .reaction-title { color: var(--success-text); }
+    .reaction-card.parcial .reaction-title { color: var(--warn-text); }
+    .reaction-card.erro .reaction-title { color: var(--danger-text); }
+
+    .reaction-text {
+      font-size: 0.83rem;
+      color: #334155;
+      line-height: 1.45;
+      margin-bottom: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== TELA DE AVISO LEGAL E CONSENTIMENTO ==================== -->
+  <div id="disclaimer-overlay">
+    <div class="disclaimer-card">
+      <h2>⚠️ Aviso Legal e Termo de Uso Didático</h2>
+      <p>Este sistema (<strong>VetSim — Plantão da Dor</strong>) é uma <strong>ferramenta de simulação e caráter estritamente educacional</strong>, desenvolvida para aproximar estudantes e visitantes da Expo do raciocínio farmacológico veterinário.</p>
+      <p>Ao acessar o simulador, você reconhece e concorda que:</p>
+      <ul>
+        <li>O aplicativo <strong>NÃO deve ser utilizado para prescrição, diagnóstico ou tratamento</strong> de animais na rotina clínica real.</li>
+        <li>O manejo da dor crônica e neuropática exige avaliação individualizada, considerando função renal, comorbidades e terapias multimodais.</li>
+        <li>A responsabilidade pelas decisões clínicas na prática profissional é exclusiva do Médico-Veterinário habilitado.</li>
+      </ul>
+
+      <label class="checkbox-container">
+        <input type="checkbox" id="terms-checkbox" onchange="toggleConsentButton()" />
+        <span>Compreendo que esta aplicação é exclusiva para fins didáticos e apresentação acadêmica (Expo 2026), sendo vedada para uso clínico real.</span>
+      </label>
+
+      <button id="enter-btn" class="btn-consent" disabled onclick="acceptTerms()">Acessar Simulador Vet</button>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE REAÇÃO (ACERTO / ERRO) ==================== -->
+  <div id="reaction-overlay" onclick="fecharReacao(event)">
+    <div class="reaction-card" id="reaction-card" onclick="event.stopPropagation()">
+      <img id="reaction-img" class="reaction-img" src="" alt="Reação do Plantão" />
+      <div id="reaction-title" class="reaction-title"></div>
+      <div id="reaction-text" class="reaction-text"></div>
+      <button class="btn-primary" style="margin-top: 0;" onclick="fecharReacao()">Entendido ✔️</button>
+    </div>
+  </div>
+
+  <!-- ==================== APLICATIVO PRINCIPAL (.app-shell) ==================== -->
+  <div class="app-shell">
+    <!-- Top Bar -->
+    <header class="app-header">
+      <div class="app-title-group">
+        <h1>🐾 Plantão da Dor </h1>
+        <p>Manejo da Dor Crônica &amp; Neuropática • Expo 2026</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon" id="btn-sound" onclick="toggleSom()" title="Ativar/Desativar Efeitos Sonoros">🔊</button>
+        <button class="btn-icon" onclick="voltarInicio()" title="Tela Inicial do Plantão">🏠</button>
+      </div>
+    </header>
+
+    <!-- HUD Status -->
+    <section class="hud-bar" id="hud-bar" style="display: none;">
+      <div class="hud-item">
+        <div class="hud-label">
+          <span>💚 Bem-Estar</span>
+          <span class="hud-value" id="hud-be-text">2 / 14</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill-green" id="hud-be-bar" style="width: 15%;"></div>
+        </div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label">
+          <span>🚨 Alertas</span>
+          <span class="hud-value" id="hud-risco-text">0 / 3</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill-red" id="hud-risco-bar" style="width: 0%;"></div>
+        </div>
+      </div>
+      <div class="hud-item">
+        <div class="hud-label" style="justify-content:center;"><span>⏱️ Tempo</span></div>
+        <div class="timer-display" id="hud-timer">00:00</div>
+      </div>
+    </section>
+
+    <!-- Main Scrollable Body -->
+    <main class="app-body">
+
+      <!-- ==================== ABA 1: PLANTÃO (JOGO EM 2 FASES) ==================== -->
+      <div id="tab-jogo" class="screen active">
+
+        <!-- TELA INICIAL DO JOGO -->
+        <div id="view-home" class="card hero-center">
+          <div class="hero-emoji">🩺🐶🐱</div>
+          <h2 style="font-size: 1.15rem; margin-bottom: 5px;">Simulador de Analgesia Veterinária</h2>
+          <p style="font-size: 0.81rem; color: var(--muted); line-height: 1.45;">
+            Assuma o plantão em <strong>2 fases rápidas e interativas</strong> com <strong>embaralhamento completo</strong> de perguntas e casos a cada partida!
+          </p>
+
+          <input type="text" id="input-jogador" class="name-input" placeholder="Digite seu nome (ex: Ana Clara)" maxlength="28" />
+
+          <div class="rule-pill">
+            <span>🧠</span>
+            <div><strong>Fase 1 — Fundamentos Teóricos:</strong> 2 perguntas sorteadas aleatoriamente do banco tec/farmacológico.</div>
+          </div>
+          <div class="rule-pill">
+            <span>🏥</span>
+            <div><strong>Fase 2 — Plantão Clínico:</strong> Atenda 2 pacientes sorteados entre 5 casos reais com conduta e cálculo em mg.</div>
+          </div>
+          <div class="rule-pill">
+            <span>🏆</span>
+            <div><strong>Certificado &amp; Pódio:</strong> Conclua o plantão para gerar seu certificado e entrar no Ranking da Expo!</div>
+          </div>
+
+          <button class="btn-primary" onclick="iniciarNovoPlantao()">▶️ Iniciar Plantão Clínico</button>
+        </div>
+
+        <!-- FASE 1: FUNDAMENTOS TEÓRICOS -->
+        <div id="view-fase1" style="display: none; flex-direction: column; gap: 11px;">
+          <div class="phase-banner">
+            <div>
+              <div class="phase-banner-title">🧠 Fase 1: Fundamentos Teóricos</div>
+              <div class="phase-banner-sub">Perguntas sorteadas e embaralhadas</div>
+            </div>
+            <div class="phase-pills">
+              <span class="phase-dot active" id="pill-f1">Fase 1</span>
+              <span class="phase-dot" id="pill-f2">Fase 2</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="badge-row">
+              <span class="badge" id="f1-contador">Pergunta 1 de 2</span>
+              <span class="badge-step" id="f1-tema">Farmacodinâmica</span>
+            </div>
+            <div class="question-title" id="f1-pergunta"></div>
+            <div class="options-list" id="f1-opcoes"></div>
+            <div id="f1-feedback"></div>
+            <button class="btn-primary" id="btn-f1-proxima" style="display: none;" onclick="avancarFase1()">Continuar ➡️</button>
+          </div>
+        </div>
+
+        <!-- TRANSIÇÃO ENTRE FASE 1 E FASE 2 -->
+        <div id="view-transicao" class="card hero-center" style="display: none;">
+          <div class="hero-emoji">✅🏥</div>
+          <span class="badge" style="margin-bottom: 8px; display: inline-block;">Fase 1 Concluída!</span>
+          <h2 style="font-size: 1.15rem; margin-bottom: 6px;">Pronto para o Plantão Clínico?</h2>
+          <p style="font-size: 0.82rem; color: var(--muted); line-height: 1.48;" id="transicao-texto">
+            Fundamentos revisados com sucesso. Agora, na <strong>Fase 2</strong>, você atenderá <strong>2 pacientes sorteados</strong> com dor crônica ou neuropática.
+          </p>
+          <button class="btn-primary" onclick="iniciarFase2()">🩺 Entrar no Consultório (Fase 2)</button>
+        </div>
+
+        <!-- FASE 2: PLANTÃO DE CASOS CLÍNICOS -->
+        <div id="view-fase2" style="display: none; flex-direction: column; gap: 11px;">
+          <div class="phase-banner">
+            <div>
+              <div class="phase-banner-title">🏥 Fase 2: Plantão Clínico</div>
+              <div class="phase-banner-sub">Conduta terapêutica e cálculo posológico</div>
+            </div>
+            <div class="phase-pills">
+              <span class="phase-dot done">Fase 1 ✓</span>
+              <span class="phase-dot active">Fase 2</span>
+            </div>
+          </div>
+
+          <!-- Card do Prontuário -->
+          <div class="card">
+            <div class="badge-row">
+              <span class="badge" id="caso-contador">Paciente 1 de 2</span>
+              <span class="badge-species" id="caso-especie">Canino</span>
+              <span class="badge-step" id="etapa-badge">Etapa A: Conduta</span>
+            </div>
+            <div class="patient-header">
+              <div class="patient-avatar" id="caso-avatar">🐕</div>
+              <div>
+                <div class="patient-name" id="caso-nome">Thor</div>
+                <div class="patient-meta" id="caso-meta">Cavalier King Charles Spaniel • 8 kg</div>
+              </div>
+            </div>
+            <div class="vitals-grid" id="caso-vitais"></div>
+            <div class="clinical-box" id="caso-quadro"></div>
+          </div>
+
+          <!-- Card da Decisão (Etapa A ou Etapa B) -->
+          <div class="card">
+            <div class="question-title" id="etapa-pergunta"></div>
+            <div class="options-list" id="etapa-opcoes"></div>
+            <div id="etapa-calculo" style="display: none;"></div>
+            <div id="etapa-feedback"></div>
+            <button class="btn-primary" id="btn-f2-proxima" style="display: none;" onclick="avancarFase2()">Próxima Etapa ➡️</button>
+          </div>
+        </div>
+
+        <!-- TELA FINAL & CERTIFICADO -->
+        <div id="view-end" class="card hero-center" style="display: none;">
+          <div class="hero-emoji" id="end-emoji">🏆</div>
+          <h2 id="end-titulo" style="font-size: 1.18rem; margin-bottom: 4px;"></h2>
+          <p id="end-subtitulo" style="font-size: 0.82rem; color: var(--muted);"></p>
+
+          <div class="cert-box" id="cert-box">
+            <div style="font-size: 0.68rem; font-weight: 800; color: var(--primary-dark); letter-spacing: 0.5px;">CERTIFICADO DE PLANTÃO • EXPO 2026</div>
+            <div style="font-size: 1.08rem; font-weight: 800; margin: 6px 0;" id="cert-nome">Plantonista</div>
+            <div style="font-size: 0.8rem; color: #334155;" id="cert-stats"></div>
+          </div>
+
+          <div class="clinical-box" id="end-resumo" style="text-align: left;"></div>
+          <button class="btn-primary" onclick="iniciarNovoPlantao()">🔄 Novo Plantão (Sortear Novas Questões)</button>
+          <button class="btn-secondary" onclick="mudarAba('ranking')">🏆 Ver Ranking da Bancada</button>
+        </div>
+      </div>
+
+      <!-- ==================== ABA 2: CALCULADORA CLÍNICA + BULÁRIO ==================== -->
+      <div id="tab-guia" class="screen">
+        <div class="card">
+          <h3 style="font-size: 0.98rem; margin-bottom: 5px; color: var(--primary-dark);">🧮 Calculadora Rápida — Anticonvulsivantes</h3>
+          <p style="font-size: 0.76rem; color: var(--muted); margin-bottom: 8px;">Calcule a dose por administração conforme o protocolo da A3:</p>
+          <div style="display:grid; grid-template-columns: 1.25fr 0.75fr; gap:8px; margin-bottom:8px;">
+            <div>
+              <label style="font-size:0.7rem; font-weight:700; color:var(--muted);">Fármaco / Protocolo</label>
+              <select id="sim-esp" onchange="calcularSimulador()" style="width:100%; padding:8px; border-radius:9px; border:1px solid var(--border); font-size:0.78rem; margin-top:3px; background:#fff;">
+              <option value="2">Pregabalina — Cão Inicial (2 mg/kg)</option>
+              <option value="4">Pregabalina — Cão Titulado (4 mg/kg)</option>
+              <option value="1.5">Pregabalina — Gato Inicial (1,5 mg/kg)</option>
+              <option value="3">Pregabalina — Gato Titulado (3 mg/kg)</option>
+              <option value="5">Gabapentina — Gato Inicial (5 mg/kg)</option>
+              <option value="10">Gabapentina — Gato Titulado (10 mg/kg)</option>
+              <option value="10">Gabapentina — Cão Inicial (10 mg/kg)</option>
+              <option value="20">Gabapentina — Cão Titulado (20 mg/kg)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.7rem; font-weight:700; color:var(--muted);">Peso (kg)</label>
+              <input type="number" id="sim-peso" value="8" min="0.5" max="80" step="0.5" oninput="calcularSimulador()" style="width:100%; padding:8px; border-radius:9px; border:1px solid var(--border); font-size:0.84rem; font-weight:700; margin-top:3px;" />
+            </div>
+          </div>
+          <div class="clinical-box" id="sim-resultado" style="font-weight:700; color:var(--primary-dark);">
+            Dose calculada: 16,0 mg por administração (VO a cada 12/12h).
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="font-size: 0.95rem; margin-bottom: 6px; color: var(--primary-dark);">💊 Anticonvulsivantes: Gabapentina vs. Pregabalina</h3>
+          <table class="ref-table">
+            <thead>
+              <tr>
+                <th>Critério</th>
+                <th>Gabapentina</th>
+                <th>Pregabalina (Escolha Racional)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Mecanismo</strong></td>
+                <td>Liga-se à subunidade α2δ dos canais de Ca²⁺ (reduz glutamato).</td>
+                <td>Mesmo mecanismo molecular (subunidade α2δ).</td>
+              </tr>
+              <tr>
+                <td><strong>Absorção &amp; Alimento</strong></td>
+                <td>Saturável no duodeno em altas doses. Sem interferência alimentar.</td>
+                <td><strong>Linear e não saturável</strong> no intestino delgado. Alimento altera apenas velocidade.</td>
+              </tr>
+              <tr>
+                <td><strong>Pico &amp; Posologia</strong></td>
+                <td>Pico: 2–3h | Meia-vida: 6–8h (geralmente 8/8h).</td>
+                <td><strong>Pico: ~1,5h</strong> | Meia-vida: ~6h (permite <strong>12/12h em cães</strong>).</td>
+              </tr>
+              <tr>
+                <td><strong>Dose Cães / Gatos</strong></td>
+                <td>Cães: 10–20 mg/kg | Gatos: 10 mg/kg VO (gel transdérmico é ineficaz).</td>
+                <td>Cães: <strong>2 mg/kg inicial</strong> (até 3–4 mg/kg) | Gatos: <strong>1–2 mg/kg</strong> (5–10 mg/kg pré-transporte).</td>
+              </tr>
+              <tr>
+                <td><strong>Precauções</strong></td>
+                <td>Eliminação renal; sedação e ataxia; sedação intensa em gatos &gt;25 mg/kg.</td>
+                <td>Eliminação renal (ajustar em nefropatas); retirar gradualmente (evitar rebote).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3 style="font-size: 0.95rem; margin-bottom: 6px; color: var(--primary-dark);">💉 Hipnoanalgésicos: Tramadol vs. Metadona</h3>
+          <table class="ref-table">
+            <thead>
+              <tr>
+                <th>Critério</th>
+                <th>Tramadol</th>
+                <th>Metadona</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Mecanismo</strong></td>
+                <td>Agonista μ fraco + inibe recaptação de serotonina e noradrenalina.</td>
+                <td><strong>Agonista μ forte + antagonista NMDA</strong> + inibe recaptação de monoaminas.</td>
+              </tr>
+              <tr>
+                <td><strong>Particularidade Espécie</strong></td>
+                <td><strong>Cães formam metabólito inativo M2</strong> (baixa eficácia isolada). Gatos produzem M1 ativo.</td>
+                <td>Alta potência em dores severas/neuropáticas; meia-vida longa (24–36h).</td>
+              </tr>
+              <tr>
+                <td><strong>Riscos &amp; Cuidados</strong></td>
+                <td>Síndrome serotoninérgica e queda do limiar convulsivo.</td>
+                <td>Janela terapêutica estreita, bradicardia, disforia e depressão respiratória.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ==================== ABA 3: RANKING DA EXPO ==================== -->
+      <div id="tab-ranking" class="screen">
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <h3 style="font-size: 0.98rem; color: var(--primary-dark);">🏆 Placar de Plantonistas — Expo</h3>
+            <button class="btn-danger-outline" onclick="limparRanking()">🗑️ Limpar Placar</button>
+          </div>
+          <p style="font-size: 0.76rem; color: var(--muted); margin-top: 4px;">Melhores desempenhos registrados neste dispositivo durante a apresentação:</p>
+          <div id="ranking-lista" style="margin-top: 8px;"></div>
+        </div>
+      </div>
+
+      <!-- ==================== ABA 4: SOBRE & REFERÊNCIAS ==================== -->
+      <div id="tab-sobre" class="screen">
+        <div class="card">
+          <span class="badge">3ª Entrega A3 • Expo 2026</span>
+          <h3 style="font-size: 1rem; margin: 9px 0 6px; color: var(--primary-dark);">Manejo Farmacológico da Dor Crônica ou Neuropática em Cães e Gatos</h3>
+          <p style="font-size: 0.81rem; color: #334155; line-height: 1.55;">
+            <strong>Unidade Curricular:</strong> Farmacologia Veterinária e Prescrição<br/>
+            <strong>Instituição:</strong> Universidade Anhembi Morumbi (São Paulo, 2026)<br/>
+            <strong>Integrantes:</strong><br/>
+            • Daniela Antunes<br/>
+            • Monique Siqueira Amaral Ferreira<br/>
+            • Tais Freire Franco<br/>
+            <strong>Professor Facilitador:</strong> Prof. Dante Oliveira
+          </p>
+        </div>
+
+        <div class="card">
+          <h3 style="font-size: 0.94rem; margin-bottom: 7px; color: var(--primary-dark);">📚 Referências Bibliográficas do Trabalho</h3>
+          <ul style="font-size: 0.76rem; color: #334155; padding-left: 16px; line-height: 1.48; display: flex; flex-direction: column; gap: 5px;">
+            <li><strong>AAHA / AAFP.</strong> 2022 AAHA Pain Management Guidelines for Dogs and Cats. <em>JAAHA</em>, v. 58, n. 2, p. 55-76, 2022.</li>
+            <li><strong>WSAVA.</strong> Protocolo de Manejo da Dor — Conselho Global da Dor da WSAVA.</li>
+            <li><strong>PLUMB, D. C.</strong> <em>Plumb's Veterinary Drug Handbook</em>. 10. ed. Ames: Wiley-Blackwell, 2023.</li>
+            <li><strong>MOORE, S. A.</strong> Managing Neuropathic Pain in Dogs. <em>Frontiers in Veterinary Science</em>, v. 3, p. 12, 2016.</li>
+            <li><strong>RUSBRIDGE, C.</strong> Neuropathic pain in cats: Mechanisms and multimodal management. <em>JFMS</em>, v. 26, n. 5, 2024.</li>
+            <li><strong>SALAZAR, V. et al.</strong> Pharmacokinetics of single-dose oral pregabalin administration in normal cats. <em>Vet Anaesth Analg</em>, 2018.</li>
+            <li><strong>MAGDANELO, E. L. L. H. B.; RODRÍGUEZ, N. C.</strong> Uso de Gabapentina e Pregabalina em cães e gatos na dor aguda e crônica. <em>Vet. e Zootec.</em>, v. 30, p. 1-10, 2023.</li>
+            <li><strong>DOMÍNGUEZ-OLIVA, A. et al.</strong> Clinical pharmacology of tramadol and tapentadol in dogs and cats. <em>J Adv Vet Anim Res</em>, 2021.</li>
+            <li><strong>BROWN, P. et al.</strong> Methadone for Chronic Pain: Pharmacology, Efficacy, and Safety Concerns. <em>Health Psychol Res</em>, 2025.</li>
+          </ul>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Bottom Tab Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" id="nav-jogo" onclick="mudarAba('jogo')">
+        <span class="icon">🩺</span>
+        <span>Plantão</span>
+      </button>
+      <button class="nav-btn" id="nav-guia" onclick="mudarAba('guia')">
+        <span class="icon">🧮</span>
+        <span>Dose &amp; Guia</span>
+      </button>
+      <button class="nav-btn" id="nav-ranking" onclick="mudarAba('ranking')">
+        <span class="icon">🏆</span>
+        <span>Ranking</span>
+      </button>
+      <button class="nav-btn" id="nav-sobre" onclick="mudarAba('sobre')">
+        <span class="icon">📚</span>
+        <span>Sobre</span>
+      </button>
+    </nav>
+  </div>
+
+  <script>
+    /* ==================== CONTROLE DO AVISO LEGAL ==================== */
+    function toggleConsentButton() {
+      const checkbox = document.getElementById('terms-checkbox');
+      document.getElementById('enter-btn').disabled = !checkbox.checked;
+    }
+
+    function acceptTerms() {
+      document.getElementById('disclaimer-overlay').style.display = 'none';
+      tocarSom('click');
+    }
+
+    /* ==================== EFEITOS SONOROS (WEB AUDIO API) ==================== */
+    let somAtivo = true;
+    let audioCtx = null;
+
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function toggleSom() {
+      somAtivo = !somAtivo;
+      const btn = document.getElementById('btn-sound');
+      btn.textContent = somAtivo ? '🔊' : '🔇';
+      if (somAtivo) tocarSom('click');
+    }
+
+    function tocarSom(tipo) {
+      if (!somAtivo) return;
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (tipo === 'click') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(520, now);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (tipo === 'acerto') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.09);
+          osc.frequency.setValueAtTime(783.99, now + 0.18);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+          osc.start(now);
+          osc.stop(now + 0.34);
+        } else if (tipo === 'parcial') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(493.88, now + 0.12);
+          gain.gain.setValueAtTime(0.11, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (tipo === 'erro') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.linearRampToValueAtTime(160, now + 0.28);
+          gain.gain.setValueAtTime(0.11, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        } else if (tipo === 'vitoria') {
+          const notas = [523.25, 659.25, 783.99, 1046.5];
+          notas.forEach((freq, idx) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'triangle';
+            o.connect(g);
+            g.connect(ctx.destination);
+            o.frequency.setValueAtTime(freq, now + idx * 0.11);
+            g.gain.setValueAtTime(0.13, now + idx * 0.11);
+            g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.11 + 0.28);
+            o.start(now + idx * 0.11);
+            o.stop(now + idx * 0.11 + 0.28);
+          });
+        }
+      } catch (e) {}
+    }
+
+    /* ==================== BANCO DA FASE 1: 6 QUESTÕES TEÓRICAS ==================== */
+    const BANCO_TEORICO = [
+      {
+        tema: "Mecanismo de Ação",
+        pergunta: "Como a pregabalina e a gabapentina atuam no sistema nervoso para controlar a dor neuropática?",
+        opcoes: [
+          {
+            texto: "Ligam-se à subunidade α2δ dos canais de cálcio voltagem-dependentes, reduzindo a liberação de neurotransmissores excitatórios como o glutamato.",
+            tipo: "ideal",
+            feedback: "Exato! Apesar da semelhança estrutural com o GABA, elas não agem diretamente nos receptores gabaérgicos, mas sim bloqueando a entrada de cálcio (subunidade α2δ) e reduzindo o glutamato."
+          },
+          {
+            texto: "Atuam como agonistas fortes dos receptores opioides μ (mi), causando depressão respiratória imediata.",
+            tipo: "erro",
+            feedback: "Incorreto. Agonistas opioides μ (mi) são os hipnoanalgésicos, como a metadona. Gabapentina e pregabalina são anticonvulsivantes moduladores de canais de cálcio."
+          },
+          {
+            texto: "Inibem exclusivamente as enzimas ciclo-oxigenases (COX-1 e COX-2) nos tecidos periféricos inflamados.",
+            tipo: "erro",
+            feedback: "Incorreto. A inibição de COX é o mecanismo dos anti-inflamatórios não esteroidais (AINEs), que têm eficácia limitada na dor neuropática isolada."
+          }
+        ]
+      },
+      {
+        tema: "Conceitos de Dor",
+        pergunta: "De acordo com o trabalho acadêmico, qual é a diferença fundamental entre nocicepção e dor?",
+        opcoes: [
+          {
+            texto: "Nocicepção é o processo sistêmico de transmissão do estímulo nervoso; já a dor é uma percepção subjetiva com influência biológica e emocional.",
+            tipo: "ideal",
+            feedback: "Perfeito! Entender essa distinção explica por que o estresse e a ansiedade (especialmente em felinos) amplificam a percepção da dor crônica."
+          },
+          {
+            texto: "São sinônimos exatos, porém 'nocicepção' é o termo utilizado apenas para felinos e 'dor' apenas para caninos.",
+            tipo: "erro",
+            feedback: "Incorreto. Os mecanismos de nocicepção ocorrem de forma semelhante em cães e gatos, mas dor envolve a interpretação subjetiva do sistema nervoso central."
+          },
+          {
+            texto: "Nocicepção ocorre somente quando há fratura óssea, enquanto a dor neuropática não envolve condução nervosa.",
+            tipo: "erro",
+            feedback: "Incorreto. A dor neuropática resulta justamente de lesões ou doenças associadas ao sistema nervoso central ou periférico."
+          }
+        ]
+      },
+      {
+        tema: "Farmacocinética Comparada",
+        pergunta: "Qual é a principal vantagem farmacocinética da pregabalina em relação à gabapentina na escolha racional?",
+        opcoes: [
+          {
+            texto: "Possui absorção intestinal linear e não saturável em todo o intestino delgado, gerando resposta mais previsível e posologia prática (12/12h em cães).",
+            tipo: "ideal",
+            feedback: "Correto! A gabapentina sofre saturação no transporte duodenal em doses altas (sua biodisponibilidade cai), enquanto a pregabalina tem absorção linear e pico rápido (~1,5h)."
+          },
+          {
+            texto: "A pregabalina possui eliminação 100% biliar e fecal, podendo ser usada sem qualquer ajuste em pacientes com insuficiência renal grave.",
+            tipo: "erro",
+            feedback: "Atenção! Tanto a pregabalina quanto a gabapentina têm eliminação predominantemente renal e exigem ajuste cuidadoso em pacientes nefropatas."
+          },
+          {
+            texto: "A pregabalina tem excelente absorção por gel transdérmico auricular em gatos, dispensando a via oral.",
+            tipo: "erro",
+            feedback: "Incorreto. Ambas são administradas por via oral (VO). O gel transdérmico demonstrou biodisponibilidade muito baixa e ineficaz."
+          }
+        ]
+      },
+      {
+        tema: "Opioides em Cães e Gatos",
+        pergunta: "Por que o tramadol isolado costuma apresentar eficácia limitada em cães com dor intensa ou neuropática?",
+        opcoes: [
+          {
+            texto: "Porque o metabolismo hepático dos cães gera majoritariamente o metabólito inativo M2, ao contrário dos gatos que produzem o metabólito ativo M1.",
+            tipo: "ideal",
+            feedback: "Excelente! Em cães, a baixa conversão no metabólito ativo M1 limita o efeito opioide μ do tramadol, exigindo protocolos multimodais."
+          },
+          {
+            texto: "Porque o tramadol bloqueia totalmente os receptores NMDA, causando hiperatividade extrema em cães.",
+            tipo: "erro",
+            feedback: "Incorreto. Quem possui expressivo antagonismo não competitivo nos receptores NMDA e alta potência μ é a metadona."
+          },
+          {
+            texto: "Porque o tramadol não é absorvido pelo trato gastrointestinal dos cães.",
+            tipo: "erro",
+            feedback: "Incorreto. O tramadol tem rápida absorção oral, mas sua analgesia depende da biotransformação hepática via CYP450."
+          }
+        ]
+      },
+      {
+        tema: "Mecanismo da Metadona",
+        pergunta: "Além de ser um agonista forte dos receptores opioides μ (mi), qual característica torna a metadona altamente eficaz na dor neuropática?",
+        opcoes: [
+          {
+            texto: "Atua como antagonista não competitivo dos receptores NMDA e inibe a recaptação de serotonina e noradrenalina, prevenindo sensibilização central e tolerância.",
+            tipo: "ideal",
+            feedback: "Isso mesmo! Essa ação dupla (μ + bloqueio NMDA + monoaminas) e sua meia-vida longa (24–36h) garantem estabilidade analgésica em dores severas."
+          },
+          {
+            texto: "Estimula os canais de cálcio pré-sinápticos, aumentando a liberação de glutamato na medula espinhal.",
+            tipo: "erro",
+            feedback: "Incorreto. Aumentar o glutamato agravaria a hiperexcitabilidade e a dor neuropática!"
+          },
+          {
+            texto: "Não possui nenhum risco de depressão respiratória ou efeitos adversos, dispensando monitoramento clínico.",
+            tipo: "erro",
+            feedback: "Incorreto. A metadona tem janela terapêutica estreita e exige monitoramento rigoroso devido ao risco de sedação profunda, bradicardia e depressão respiratória."
+          }
+        ]
+      },
+      {
+        tema: "Segurança & Desmame",
+        pergunta: "Qual cuidado essencial deve ser orientado ao tutor durante o uso prolongado e a suspensão da pregabalina?",
+        opcoes: [
+          {
+            texto: "Iniciar com a menor dose eficaz e nunca interromper o tratamento abruptamente, realizando a retirada gradual para evitar efeito rebote.",
+            tipo: "ideal",
+            feedback: "Perfeito! A titulação gradual minimiza sedação e ataxia no início, e o desmame lento evita o retorno abrupto da hiperexcitabilidade neural."
+          },
+          {
+            texto: "Caso o tutor esqueça um horário, deve dobrar a dose na administração seguinte para manter o pico plasmático.",
+            tipo: "erro",
+            feedback: "Perigo! Nunca se deve dobrar a dose em caso de esquecimento, pois isso eleva o risco de sedação intensa, tontura e ataxia."
+          },
+          {
+            texto: "Suspender imediatamente no primeiro dia em que o animal parar de vocalizar, sem retorno ao veterinário.",
+            tipo: "erro",
+            feedback: "Incorreto. A dor crônica exige acompanhamento contínuo e retirada gradual prescrita pelo médico-veterinário."
+          }
+        ]
+      }
+    ];
+
+    /* ==================== BANCO DA FASE 2: 5 CASOS CLÍNICOS ==================== */
+    const BANCO_CASOS = [
+      {
+        id: "thor",
+        nome: "Thor",
+        especie: "Canino",
+        avatar: "🐕",
+        meta: "Cavalier King Charles Spaniel • 6 anos • 8 kg",
+        peso: 8,
+        vitais: [
+          { label: "Peso", valor: "8,0 kg" },
+          { label: "Função Renal", valor: "Normal" },
+          { label: "Dor", valor: "Neuropática" }
+        ],
+        quadro: "Diagnosticado com malformação de Chiari e siringomielia. Apresenta coceira fantasma na região cervical, vocalização espontânea e hipersensibilidade ao toque no pescoço.",
+        etapaA: {
+          pergunta: "Etapa A (Conduta): Qual é a melhor escolha racional de primeira linha para iniciar o controle dessa dor neuropática crônica?",
+          opcoes: [
+            {
+              texto: "Pregabalina por via oral (VO) a cada 12 horas, iniciando com dose baixa e titulando conforme resposta.",
+              tipo: "ideal",
+              feedback: "Excelente! A pregabalina tem absorção linear no intestino delgado, pico rápido (~1,5h) e posologia prática a cada 12h em cães, oferecendo resposta previsível."
+            },
+            {
+              texto: "Gabapentina por via oral (VO) a cada 8 horas.",
+              tipo: "parcial",
+              feedback: "Conduta aceitável como coadjuvante (citada no estudo para siringomielia em Cavaliers), porém exige administrações mais frequentes (8/8h) e tem absorção saturável."
+            },
+            {
+              texto: "Tramadol isolado uma vez ao dia como monoterapia definitiva.",
+              tipo: "erro",
+              feedback: "Inadequado! Em cães, o tramadol gera majoritariamente o metabólito inativo M2, tendo eficácia isolada insuficiente para dor neuropática crônica."
+            }
+          ]
+        },
+        etapaB: {
+          pergunta: "Etapa B (Cálculo Guiado): Calcule a dose inicial de Pregabalina para Thor.",
+          dica: "💡 Protocolo A3 para Cães (dose inicial): 2 mg/kg VO a cada 12h. Peso do Thor: 8 kg. (Conta: 8 kg × 2 mg/kg)",
+          unidade: "mg por dose",
+          doseCorreta: 16,
+          margem: 0.5,
+          sugestoes: [8, 16, 32],
+          explicacao: "8 kg × 2 mg/kg = 16 mg por administração (a cada 12 horas). Caso necessário e bem tolerado, poderá ser titulada futuramente para 3 a 4 mg/kg."
+        }
+      },
+      {
+        id: "mia",
+        nome: "Mia",
+        especie: "Felino",
+        avatar: "🐈",
+        meta: "Felina SRD • 8 anos • 4 kg",
+        peso: 4,
+        vitais: [
+          { label: "Peso", valor: "4,0 kg" },
+          { label: "Função Renal", valor: "Normal" },
+          { label: "Perfil", valor: "Estressada" }
+        ],
+        quadro: "Apresenta dor crônica por osteoartrite lombar e extrema reatividade/agressividade durante o transporte na caixa e manipulação no consultório.",
+        etapaA: {
+          pergunta: "Etapa A (Conduta): Qual estratégia farmacológica controla a dor crônica felina e auxilia na redução do estresse clínico?",
+          opcoes: [
+            {
+              texto: "Pregabalina oral ajustada ao peso (1 a 2 mg/kg 12/12h para dor crônica; ou 5 mg/kg 90 min antes do transporte).",
+              tipo: "ideal",
+              feedback: "Perfeito! Em felinos, a pregabalina permite ajuste preciso ao peso, controlando a dor crônica e o estresse sem causar a sedação excessiva de doses empíricas."
+            },
+            {
+              texto: "Dose fixa empírica alta de gabapentina (> 30 mg/kg) antes de cada consulta.",
+              tipo: "parcial",
+              feedback: "Cuidado! Doses de gabapentina acima de 25 mg/kg em gatos frequentemente causam sedação excessiva, vômitos e salivação."
+            },
+            {
+              texto: "Metadona intravenosa diária em casa pelo tutor.",
+              tipo: "erro",
+              feedback: "Contraindicado! Opioides potentes como a metadona têm janela terapêutica estreita e risco de depressão respiratória, exigindo ambiente hospitalar/monitoramento."
+            }
+          ]
+        },
+        etapaB: {
+          pergunta: "Etapa B (Cálculo Guiado): Calcule a dose de manutenção crônica de Pregabalina para Mia (usando 1,5 mg/kg).",
+          dica: "💡 Protocolo A3 para Gatos (dor crônica): 1 a 2 mg/kg VO a cada 12h. Peso da Mia: 4 kg. (Conta: 4 kg × 1,5 mg/kg)",
+          unidade: "mg por dose",
+          doseCorreta: 6,
+          margem: 0.5,
+          sugestoes: [4, 6, 12],
+          explicacao: "4 kg × 1,5 mg/kg = 6 mg por administração (VO a cada 12h), mantendo-se dentro da faixa segura de 1 a 2 mg/kg para felinos."
+        }
+      },
+      {
+        id: "bob",
+        nome: "Bob",
+        especie: "Canino",
+        avatar: "🐶",
+        meta: "Canino SRD • 12 anos • 15 kg",
+        peso: 15,
+        vitais: [
+          { label: "Peso", valor: "15,0 kg" },
+          { label: "Rins", valor: "Doença Renal" },
+          { label: "Dor", valor: "Pós-amputação" }
+        ],
+        quadro: "Idoso com dor neuropática crônica após amputação de membro pélvico (dor do membro fantasma). Exames laboratoriais mostram doença renal crônica estágio 2.",
+        etapaA: {
+          pergunta: "Etapa A (Precaução Clínica): Como a doença renal crônica de Bob interfere na prescrição de pregabalina ou gabapentina?",
+          opcoes: [
+            {
+              texto: "Ambos os fármacos têm eliminação predominantemente renal; deve-se iniciar com dose reduzida/ajustada e monitorar sedação e função renal.",
+              tipo: "ideal",
+              feedback: "Exato! Como a pregabalina é eliminada principalmente pelos rins com baixa ligação proteica, pacientes nefropatas exigem redução de dose ou aumento do intervalo."
+            },
+            {
+              texto: "Usar a dose máxima de pregabalina (5 mg/kg a cada 8h) logo no primeiro dia para compensar a idade.",
+              tipo: "erro",
+              feedback: "Incorreto e perigoso! Doses máximas em paciente renal causam acúmulo plasmático, sedação profunda, tontura e ataxia."
+            },
+            {
+              texto: "Manter gabapentina em dose baixa isolada (10 mg/kg uma vez ao dia).",
+              tipo: "parcial",
+              feedback: "O trabalho destaca que doses baixas isoladas de gabapentina são insuficientes na dor pós-amputação em cães, além de também exigirem ajuste renal."
+            }
+          ]
+        },
+        etapaB: {
+          pergunta: "Etapa B (Cálculo Guiado): Aplicando redução renal (1 mg/kg em vez de 2 mg/kg), calcule a dose inicial segura de Pregabalina para Bob.",
+          dica: "💡 Ajuste Renal para Bob: 1 mg/kg VO. Peso do Bob: 15 kg. (Conta: 15 kg × 1 mg/kg)",
+          unidade: "mg por dose",
+          doseCorreta: 15,
+          margem: 0.5,
+          sugestoes: [15, 30, 60],
+          explicacao: "15 kg × 1 mg/kg = 15 mg por administração (redução de 50% em relação à dose padrão de 2 mg/kg devido ao comprometimento renal)."
+        }
+      },
+      {
+        id: "luna",
+        nome: "Luna",
+        especie: "Felino",
+        avatar: "🐱",
+        meta: "Gata Persa • 7 anos • 3,5 kg",
+        peso: 3.5,
+        vitais: [
+          { label: "Peso", valor: "3,5 kg" },
+          { label: "Função Renal", valor: "Normal" },
+          { label: "Sinal", valor: "Alodinia" }
+        ],
+        quadro: "Apresenta alodinia dorsal (dor ao leve carinho) e contrações musculares. O tutor relata dificuldade em dar comprimidos e pede para manipular gel transdérmico auricular.",
+        etapaA: {
+          pergunta: "Etapa A (Via de Administração): Qual orientação correta deve ser dada ao tutor sobre a via transdérmica vs. oral?",
+          opcoes: [
+            {
+              texto: "Explicar que o gel transdérmico auricular tem biodisponibilidade muito baixa e é ineficaz em gatos; prescrever suspensão líquida ou cápsula por via oral (VO).",
+              tipo: "ideal",
+              feedback: "Corretíssimo! O estudo destaca que o gel transdérmico de gabapentina em gatos é inadequado para uso clínico, devendo-se optar por apresentações orais (como suspensão líquida)."
+            },
+            {
+              texto: "Autorizar o gel transdérmico auricular, pois a pele da orelha absorve 95% dos anticonvulsivantes.",
+              tipo: "erro",
+              feedback: "Incorreto! Os testes em gel auricular em gatos demonstraram biodisponibilidade baixíssima, comprometendo totalmente o controle da dor."
+            },
+            {
+              texto: "Prescrever comprimidos de gabapentina dissolvidos em leite sem ajustar a frequência.",
+              tipo: "parcial",
+              feedback: "Não é o ideal. A pregabalina já existe em suspensão líquida oral palatável e permite posologia mais estável ajustada ao peso."
+            }
+          ]
+        },
+        etapaB: {
+          pergunta: "Etapa B (Cálculo Guiado): Calcule a dose inicial de Pregabalina suspensão oral para Luna (2 mg/kg).",
+          dica: "💡 Protocolo A3 para Gatos: 1 a 2 mg/kg VO a cada 12h. Peso da Luna: 3,5 kg. (Conta: 3,5 kg × 2 mg/kg)",
+          unidade: "mg por dose",
+          doseCorreta: 7,
+          margem: 0.5,
+          sugestoes: [3.5, 7, 14],
+          explicacao: "3,5 kg × 2 mg/kg = 7 mg por administração (VO a cada 12h), facilitando a administração precisa via seringa dosadora."
+        }
+      },
+      {
+        id: "rex",
+        nome: "Rex",
+        especie: "Canino",
+        avatar: "🐕‍🦺",
+        meta: "Pastor Alemão • 9 anos • 25 kg",
+        peso: 25,
+        vitais: [
+          { label: "Peso", valor: "25,0 kg" },
+          { label: "Função Renal", valor: "Normal" },
+          { label: "Dor", valor: "Intensa / Plexo" }
+        ],
+        quadro: "Neoplasia compressiva de plexo braquial causando dor neuropática severa irradiada no membro torácico e claudicação intensa.",
+        etapaA: {
+          pergunta: "Etapa A (Analgesia Multimodal): Por que associar um hipnoanalgésico potente (como Metadona no controle agudo/hospitalar) à Pregabalina é superior ao Tramadol isolado?",
+          opcoes: [
+            {
+              texto: "A metadona é agonista μ forte e antagonista NMDA (bloqueando sensibilização central), enquanto o tramadol tem baixa potência em cães (metabólito M2 inativo).",
+              tipo: "ideal",
+              feedback: "Brilhante! Dores neuropáticas severas/oncológicas exigem abordagem multimodal. A metadona previne hiperalgesia via bloqueio NMDA e complementa a pregabalina."
+            },
+            {
+              texto: "Porque o tramadol causa depressão respiratória fatal em todos os cães acima de 20 kg.",
+              tipo: "erro",
+              feedback: "Incorreto. O tramadol possui perfil atenuado de depressão respiratória; sua limitação em cães é a baixa potência analgésica pela formação de M2 inativo."
+            },
+            {
+              texto: "Usar apenas tramadol oral, pois ele possui meia-vida de 36 horas e bloqueia fortemente os canais de cálcio.",
+              tipo: "erro",
+              feedback: "Incorreto. Quem possui meia-vida longa (24–36h) é a metadona, e quem bloqueia canais de cálcio α2δ são pregabalina e gabapentina."
+            }
+          ]
+        },
+        etapaB: {
+          pergunta: "Etapa B (Cálculo Guiado): Calcule a dose inicial de Pregabalina adjuvante para Rex (2 mg/kg).",
+          dica: "💡 Protocolo A3 para Cães (dose inicial): 2 mg/kg VO a cada 12h. Peso do Rex: 25 kg. (Conta: 25 kg × 2 mg/kg)",
+          unidade: "mg por dose",
+          doseCorreta: 50,
+          margem: 1,
+          sugestoes: [25, 50, 100],
+          explicacao: "25 kg × 2 mg/kg = 50 mg por administração (VO a cada 12h), atuando em sinergia com o protocolo analgésico multimodal."
+        }
+      }
+    ];
+
+    /* ==================== ESTADO GLOBAL DO JOGO ==================== */
+    let estado = {
+      jogador: "Plantonista",
+      bemEstar: 2,
+      maxBemEstar: 14, // 2 iniciais + (2*2 na Fase 1) + (2*4 na Fase 2) = 14
+      alertas: 0,
+      maxAlertas: 3,
+      segundos: 0,
+      timerId: null,
+      // Fase 1
+      questoesF1: [],
+      indiceF1: 0,
+      respondidoF1: false,
+      // Fase 2
+      casosF2: [],
+      indiceCaso: 0,
+      etapaCaso: "A", // "A" (conduta) ou "B" (cálculo)
+      respondidoF2: false,
+      acertosTotais: 0
+    };
+
+    /* ==================== NAVEGAÇÃO ENTRE ABAS ==================== */
+    function mudarAba(aba) {
+      tocarSom('click');
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+      document.getElementById('tab-' + aba).classList.add('active');
+      document.getElementById('nav-' + aba).classList.add('active');
+
+      if (aba === 'ranking') renderizarRanking();
+      if (aba === 'guia') calcularSimulador();
+    }
+
+    function voltarInicio() {
+      tocarSom('click');
+      pararTimer();
+      document.getElementById('hud-bar').style.display = 'none';
+      esconderViewsJogo();
+      document.getElementById('view-home').style.display = 'block';
+      mudarAba('jogo');
+    }
+
+    function esconderViewsJogo() {
+      ['view-home', 'view-fase1', 'view-transicao', 'view-fase2', 'view-end'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+    }
+
+    /* ==================== TIMER E HUD ==================== */
+    function iniciarTimer() {
+      pararTimer();
+      estado.segundos = 0;
+      atualizarTimerTexto();
+      estado.timerId = setInterval(() => {
+        estado.segundos++;
+        atualizarTimerTexto();
+      }, 1000);
+    }
+
+    function pararTimer() {
+      if (estado.timerId) {
+        clearInterval(estado.timerId);
+        estado.timerId = null;
+      }
+    }
+
+    function formatarTempo(seg) {
+      const m = String(Math.floor(seg / 60)).padStart(2, '0');
+      const s = String(seg % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function atualizarTimerTexto() {
+      document.getElementById('hud-timer').textContent = formatarTempo(estado.segundos);
+    }
+
+    function atualizarHUD() {
+      const be = Math.max(0, Math.min(estado.maxBemEstar, estado.bemEstar));
+      const pctBe = Math.round((be / estado.maxBemEstar) * 100);
+      document.getElementById('hud-be-text').textContent = `${be} / ${estado.maxBemEstar}`;
+      document.getElementById('hud-be-bar').style.width = `${pctBe}%`;
+
+      const al = Math.max(0, Math.min(estado.maxAlertas, estado.alertas));
+      const pctAl = Math.round((al / estado.maxAlertas) * 100);
+      document.getElementById('hud-risco-text').textContent = `${al} / ${estado.maxAlertas}`;
+      document.getElementById('hud-risco-bar').style.width = `${pctAl}%`;
+    }
+
+    /* ==================== UTILITÁRIO DE EMBARALHAMENTO (FISHER-YATES) ==================== */
+    function sortearItens(array, qtd) {
+      const copia = [...array];
+      for (let i = copia.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copia[i], copia[j]] = [copia[j], copia[i]];
+      }
+      return copia.slice(0, qtd);
+    }
+
+    /* ==================== INÍCIO DO JOGO & FASE 1 ==================== */
+    function iniciarNovoPlantao() {
+      tocarSom('click');
+      const nomeInput = document.getElementById('input-jogador').value.trim();
+      estado.jogador = nomeInput || "Visitante Vet";
+      estado.bemEstar = 2;
+      estado.alertas = 0;
+      estado.acertosTotais = 0;
+
+      // Sortear aleatoriamente 2 questões teóricas e 2 casos clínicos
+      estado.questoesF1 = sortearItens(BANCO_TEORICO, 2);
+      estado.indiceF1 = 0;
+      estado.respondidoF1 = false;
+
+      estado.casosF2 = sortearItens(BANCO_CASOS, 2);
+      estado.indiceCaso = 0;
+      estado.etapaCaso = "A";
+      estado.respondidoF2 = false;
+
+      document.getElementById('hud-bar').style.display = 'grid';
+      atualizarHUD();
+      iniciarTimer();
+
+      esconderViewsJogo();
+      document.getElementById('view-fase1').style.display = 'flex';
+      renderizarQuestaoFase1();
+    }
+
+    function renderizarQuestaoFase1() {
+      const q = estado.questoesF1[estado.indiceF1];
+      estado.respondidoF1 = false;
+
+      document.getElementById('f1-contador').textContent = `Pergunta ${estado.indiceF1 + 1} de ${estado.questoesF1.length}`;
+      document.getElementById('f1-tema').textContent = q.tema;
+      document.getElementById('f1-pergunta').textContent = q.pergunta;
+      document.getElementById('f1-feedback').innerHTML = '';
+      document.getElementById('btn-f1-proxima').style.display = 'none';
+
+      const opcoesEl = document.getElementById('f1-opcoes');
+      opcoesEl.innerHTML = '';
+      const letras = ['A', 'B', 'C'];
+
+      // Embaralha as alternativas a cada exibição
+      const opcoesEmbaralhadas = sortearItens(q.opcoes, q.opcoes.length);
+
+      opcoesEmbaralhadas.forEach((op, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerHTML = `<span class="option-letter">${letras[idx]}</span><span>${op.texto}</span>`;
+        btn.onclick = () => responderFase1(btn, op);
+        opcoesEl.appendChild(btn);
+      });
+    }
+
+    /* ==================== CONFIGURAÇÃO DAS IMAGENS DE REAÇÃO ==================== */
+    const IMAGENS_REACAO = {
+      ideal: ["acerto.WEBP"],
+      parcial: ["parcial.WEBP"],
+      erro: ["erro.WEBP"]
+    };
+
+    function mostrarTelaReacao(tipo, titulo, texto) {
+      const overlay = document.getElementById('reaction-overlay');
+      const card = document.getElementById('reaction-card');
+      const img = document.getElementById('reaction-img');
+      const titleEl = document.getElementById('reaction-title');
+      const textEl = document.getElementById('reaction-text');
+
+      const lista = IMAGENS_REACAO[tipo] || IMAGENS_REACAO.ideal;
+      const imgEscolhida = lista[Math.floor(Math.random() * lista.length)];
+
+      card.className = 'reaction-card ' + tipo;
+      img.src = imgEscolhida;
+      titleEl.textContent = titulo;
+      textEl.innerHTML = texto;
+
+      overlay.style.display = 'flex';
+    }
+
+    function fecharReacao() {
+      tocarSom('click');
+      document.getElementById('reaction-overlay').style.display = 'none';
+    }
+
+    function responderFase1(btnClicado, opcao) {
+      if (estado.respondidoF1) return;
+      estado.respondidoF1 = true;
+
+      const botoes = document.querySelectorAll('#f1-opcoes .option-btn');
+      botoes.forEach(b => b.disabled = true);
+
+      const fbEl = document.getElementById('f1-feedback');
+      if (opcao.tipo === 'ideal') {
+        btnClicado.classList.add('selected-ideal');
+        estado.bemEstar += 2;
+        estado.acertosTotais++;
+        tocarSom('acerto');
+        fbEl.innerHTML = `<div class="feedback-box feedback-ideal"><strong>✅ Excelente (+2 Bem-Estar)!</strong><br/>${opcao.feedback}</div>`;
+        mostrarTelaReacao('ideal', '✅ Excelente (+2 Bem-Estar)!', opcao.feedback);
+      } else {
+        btnClicado.classList.add('selected-erro');
+        estado.alertas += 1;
+        tocarSom('erro');
+        fbEl.innerHTML = `<div class="feedback-box feedback-erro"><strong>⚠️ Atenção (+1 Alerta)!</strong><br/>${opcao.feedback}</div>`;
+        mostrarTelaReacao('erro', '⚠️ Atenção (+1 Alerta)!', opcao.feedback);
+      }
+
+      atualizarHUD();
+
+      const btnProx = document.getElementById('btn-f1-proxima');
+      btnProx.textContent = (estado.indiceF1 + 1 < estado.questoesF1.length)
+        ? "Próxima Pergunta Teórica ➡️"
+        : "Concluir Fase 1 ➡️";
+      btnProx.style.display = 'block';
+    }
+
+    function avancarFase1() {
+      tocarSom('click');
+      estado.indiceF1++;
+      if (estado.indiceF1 < estado.questoesF1.length) {
+        renderizarQuestaoFase1();
+      } else {
+        esconderViewsJogo();
+        document.getElementById('view-transicao').style.display = 'block';
+      }
+    }
+
+    /* ==================== FASE 2: PLANTÃO DE CASOS CLÍNICOS ==================== */
+    function iniciarFase2() {
+      tocarSom('click');
+      esconderViewsJogo();
+      document.getElementById('view-fase2').style.display = 'flex';
+      estado.indiceCaso = 0;
+      estado.etapaCaso = "A";
+      renderizarCasoFase2();
+    }
+
+    function renderizarCasoFase2() {
+      const caso = estado.casosF2[estado.indiceCaso];
+      estado.respondidoF2 = false;
+
+      document.getElementById('caso-contador').textContent = `Paciente ${estado.indiceCaso + 1} de ${estado.casosF2.length}`;
+      document.getElementById('caso-especie').textContent = caso.especie;
+      document.getElementById('caso-avatar').textContent = caso.avatar;
+      document.getElementById('caso-nome').textContent = caso.nome;
+      document.getElementById('caso-meta').textContent = caso.meta;
+
+      const vitaisEl = document.getElementById('caso-vitais');
+      vitaisEl.innerHTML = caso.vitais.map(v => `
+        <div class="vital-chip">
+          <span>${v.label}</span>
+          <strong>${v.valor}</strong>
+        </div>
+      `).join('');
+
+      document.getElementById('caso-quadro').textContent = caso.quadro;
+      document.getElementById('etapa-feedback').innerHTML = '';
+      document.getElementById('btn-f2-proxima').style.display = 'none';
+
+      const opcoesEl = document.getElementById('etapa-opcoes');
+      const calcEl = document.getElementById('etapa-calculo');
+
+      if (estado.etapaCaso === "A") {
+        document.getElementById('etapa-badge').textContent = "Etapa A: Conduta";
+        document.getElementById('etapa-pergunta').textContent = caso.etapaA.pergunta;
+        opcoesEl.style.display = 'flex';
+        calcEl.style.display = 'none';
+        opcoesEl.innerHTML = '';
+
+        const letras = ['A', 'B', 'C'];
+        // Embaralha opções da Etapa A
+        const opcoesEmbaralhadas = sortearItens(caso.etapaA.opcoes, caso.etapaA.opcoes.length);
+
+        opcoesEmbaralhadas.forEach((op, idx) => {
+          const btn = document.createElement('button');
+          btn.className = 'option-btn';
+          btn.innerHTML = `<span class="option-letter">${letras[idx]}</span><span>${op.texto}</span>`;
+          btn.onclick = () => responderEtapaA(btn, op);
+          opcoesEl.appendChild(btn);
+        });
+      } else {
+        // Etapa B: Cálculo Guiado com sugestões embaralhadas
+        document.getElementById('etapa-badge').textContent = "Etapa B: Dose (mg)";
+        document.getElementById('etapa-pergunta').textContent = caso.etapaB.pergunta;
+        opcoesEl.style.display = 'none';
+        calcEl.style.display = 'block';
+
+        // Embaralha os botões de sugestão de dose para não ficarem sempre na mesma ordem
+        const sugestoesEmbaralhadas = sortearItens(caso.etapaB.sugestoes, caso.etapaB.sugestoes.length);
+        const botoesRapidos = sugestoesEmbaralhadas.map(val => `
+          <button type="button" class="quick-pill-btn" onclick="selecionarSugestaoDose(${val})">${val} mg</button>
+        `).join('');
+
+        calcEl.innerHTML = `
+          <div class="calc-challenge-box">
+            <div class="calc-formula-hint">${caso.etapaB.dica}</div>
+            <div style="font-size:0.74rem; font-weight:700; color:var(--muted);">Clique na dose calculada ou digite o valor:</div>
+            <div class="quick-pills-row">${botoesRapidos}</div>
+            <div class="calc-input-row">
+              <input type="number" id="input-dose-caso" class="calc-input" placeholder="Ex: ${caso.etapaB.doseCorreta}" step="0.5" />
+              <span class="calc-unit">${caso.etapaB.unidade}</span>
+            </div>
+            <button type="button" class="btn-primary" id="btn-confirmar-dose" style="margin-top:2px;" onclick="validarDoseEtapaB()">✅ Confirmar Prescrição</button>
+          </div>
+        `;
+      }
+    }
+
+    function responderEtapaA(btnClicado, opcao) {
+      if (estado.respondidoF2) return;
+      estado.respondidoF2 = true;
+
+      document.querySelectorAll('#etapa-opcoes .option-btn').forEach(b => b.disabled = true);
+      const fbEl = document.getElementById('etapa-feedback');
+
+      if (opcao.tipo === 'ideal') {
+        btnClicado.classList.add('selected-ideal');
+        estado.bemEstar += 2;
+        estado.acertosTotais++;
+        tocarSom('acerto');
+        fbEl.innerHTML = `<div class="feedback-box feedback-ideal"><strong>✅ Conduta Ideal (+2 Bem-Estar)!</strong><br/>${opcao.feedback}</div>`;
+        mostrarTelaReacao('ideal', '✅ Conduta Ideal (+2 Bem-Estar)!', opcao.feedback);
+      } else if (opcao.tipo === 'parcial') {
+        btnClicado.classList.add('selected-subotima');
+        estado.bemEstar += 1;
+        tocarSom('parcial');
+        fbEl.innerHTML = `<div class="feedback-box feedback-subotima"><strong>⚠️ Conduta Parcial (+1 Bem-Estar):</strong><br/>${opcao.feedback}</div>`;
+        mostrarTelaReacao('parcial', '⚠️ Conduta Parcial (+1 Bem-Estar)', opcao.feedback);
+      } else {
+        btnClicado.classList.add('selected-erro');
+        estado.alertas += 1;
+        tocarSom('erro');
+        fbEl.innerHTML = `<div class="feedback-box feedback-erro"><strong>🚨 Conduta Inadequada (+1 Alerta):</strong><br/>${opcao.feedback}</div>`;
+        mostrarTelaReacao('erro', '🚨 Conduta Inadequada (+1 Alerta)', opcao.feedback);
+      }
+
+      atualizarHUD();
+      const btnProx = document.getElementById('btn-f2-proxima');
+      btnProx.textContent = "Ir para Cálculo da Dose (Etapa B) ➡️";
+      btnProx.style.display = 'block';
+    }
+
+    function selecionarSugestaoDose(valor) {
+      if (estado.respondidoF2) return;
+      tocarSom('click');
+      const input = document.getElementById('input-dose-caso');
+      if (input) input.value = valor;
+      validarDoseEtapaB();
+    }
+
+    function validarDoseEtapaB() {
+      if (estado.respondidoF2) return;
+      const caso = estado.casosF2[estado.indiceCaso];
+      const input = document.getElementById('input-dose-caso');
+      const valorDigitado = parseFloat(String(input.value).replace(',', '.'));
+
+      if (isNaN(valorDigitado) || valorDigitado <= 0) {
+        input.focus();
+        return;
+      }
+
+      estado.respondidoF2 = true;
+      input.disabled = true;
+      document.getElementById('btn-confirmar-dose').disabled = true;
+      document.querySelectorAll('.quick-pill-btn').forEach(b => b.disabled = true);
+
+      const fbEl = document.getElementById('etapa-feedback');
+      const diff = Math.abs(valorDigitado - caso.etapaB.doseCorreta);
+
+      if (diff <= caso.etapaB.margem) {
+        estado.bemEstar += 2;
+        estado.acertosTotais++;
+        tocarSom('acerto');
+        fbEl.innerHTML = `<div class="feedback-box feedback-ideal"><strong>✅ Dose Exata (${valorDigitado} mg • +2 Bem-Estar)!</strong><br/>${caso.etapaB.explicacao}</div>`;
+        mostrarTelaReacao('ideal', `✅ Dose Exata (${valorDigitado} mg)!`, caso.etapaB.explicacao);
+      } else {
+        estado.alertas += 1;
+        tocarSom('erro');
+        fbEl.innerHTML = `<div class="feedback-box feedback-erro"><strong>🚨 Dose Incorreta (${valorDigitado} mg • +1 Alerta):</strong><br/>A dose correta seria <strong>${caso.etapaB.doseCorreta} mg</strong>. ${caso.etapaB.explicacao}</div>`;
+        mostrarTelaReacao('erro', `🚨 Dose Incorreta (${valorDigitado} mg)`, `A dose correta seria <strong>${caso.etapaB.doseCorreta} mg</strong>. ${caso.etapaB.explicacao}`);
+      }
+
+      atualizarHUD();
+
+      const btnProx = document.getElementById('btn-f2-proxima');
+      if (estado.indiceCaso + 1 < estado.casosF2.length) {
+        btnProx.textContent = "Atender Próximo Paciente ➡️";
+      } else {
+        btnProx.textContent = "Finalizar Plantão e Gerar Certificado 🏆";
+      }
+      btnProx.style.display = 'block';
+    }
+
+    function avancarFase2() {
+      tocarSom('click');
+      if (estado.etapaCaso === "A") {
+        estado.etapaCaso = "B";
+        renderizarCasoFase2();
+      } else {
+        estado.indiceCaso++;
+        if (estado.indiceCaso < estado.casosF2.length) {
+          estado.etapaCaso = "A";
+          renderizarCasoFase2();
+        } else {
+          finalizarPlantao();
+        }
+      }
+    }
+
+    /* ==================== ENCERRAMENTO, CERTIFICADO E RANKING ==================== */
+    function finalizarPlantao() {
+      pararTimer();
+      esconderViewsJogo();
+      document.getElementById('view-end').style.display = 'block';
+
+      const aprovado = estado.bemEstar >= 9 && estado.alertas < 3;
+      const tempoFmt = formatarTempo(estado.segundos);
+
+      if (aprovado) {
+        tocarSom('vitoria');
+        document.getElementById('end-emoji').textContent = "🏆🐾";
+        document.getElementById('end-titulo').textContent = "Plantão Concluído com Excelência!";
+        document.getElementById('end-subtitulo').textContent = "Você aplicou o uso racional da analgesia veterinária com segurança.";
+      } else {
+        tocarSom('parcial');
+        document.getElementById('end-emoji').textContent = "🩺📋";
+        document.getElementById('end-titulo').textContent = "Plantão Concluído — Revisão Recomendada";
+        document.getElementById('end-subtitulo').textContent = "Consulte a aba 'Dose & Guia' para revisar as posologias e tente novamente!";
+      }
+
+      document.getElementById('cert-nome').textContent = estado.jogador;
+      document.getElementById('cert-stats').innerHTML = `
+        <strong>Bem-Estar:</strong> ${estado.bemEstar}/${estado.maxBemEstar} pts •
+        <strong>Alertas:</strong> ${estado.alertas}/${estado.maxAlertas} •
+        <strong>Tempo:</strong> ${tempoFmt}
+      `;
+
+      document.getElementById('end-resumo').innerHTML = `
+        <strong>Resumo Clínico da Sessão:</strong><br/>
+        • <strong>Decisões Ideais:</strong> ${estado.acertosTotais} de 6 etapas totais (Fase 1 + Fase 2).<br/>
+        • <strong>Destaque do Protocolo:</strong> A pregabalina destaca-se pela absorção linear, pico em ~1,5h e ajuste individualizado por peso e função renal.
+      `;
+
+      salvarNoRanking({
+        nome: estado.jogador,
+        pontos: estado.bemEstar,
+        alertas: estado.alertas,
+        tempoSeg: estado.segundos,
+        tempoFmt: tempoFmt
+      });
+    }
+
+    const STORAGE_KEY = "vetsim_expo_ranking_2026";
+
+    function obterRanking() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return [];
+    }
+
+    function salvarNoRanking(novoRegistro) {
+      const lista = obterRanking();
+      lista.push(novoRegistro);
+      lista.sort((a, b) => {
+        if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+        if (a.alertas !== b.alertas) return a.alertas - b.alertas;
+        return a.tempoSeg - b.tempoSeg;
+      });
+      const top10 = lista.slice(0, 10);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(top10));
+      } catch (e) {}
+    }
+
+    function renderizarRanking() {
+      const lista = obterRanking();
+      const container = document.getElementById('ranking-lista');
+      if (!lista.length) {
+        container.innerHTML = `<p style="font-size:0.8rem; color:var(--muted);">Nenhum plantão registrado ainda.</p>`;
+        return;
+      }
+
+      const medalhas = ["🥇", "🥈", "🥉"];
+      container.innerHTML = lista.map((item, idx) => {
+        const pos = medalhas[idx] || `#${idx + 1}`;
+        return `
+          <div class="rank-row">
+            <div>
+              <strong>${pos} ${item.nome}</strong>
+              <div style="font-size:0.7rem; color:var(--muted);">Alertas: ${item.alertas} • Tempo: ${item.tempoFmt}</div>
+            </div>
+            <span class="badge">${item.pontos} pts</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function limparRanking() {
+      tocarSom('click');
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (e) {}
+      renderizarRanking();
+    }
+
+    /* ==================== CALCULADORA DA ABA DOSE & GUIA ==================== */
+    function calcularSimulador() {
+      const selectVal = document.getElementById('sim-esp').value;
+      const doseKg = parseFloat(selectVal);
+      const peso = parseFloat(document.getElementById('sim-peso').value) || 0;
+
+      const totalMg = (doseKg * peso).toFixed(1).replace('.', ',');
+      document.getElementById('sim-resultado').innerHTML = `
+        Dose calculada: <strong>${totalMg} mg</strong> por administração (VO).
+      `;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      calcularSimulador();
+      renderizarRanking();
+    });
+  </script>
+</body>
+</html>
